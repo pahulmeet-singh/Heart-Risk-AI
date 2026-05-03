@@ -1,18 +1,20 @@
-# Heart Disease Clinical Risk Assessment
-## INT428 – AI Essentials | College Project
+# 🫀 Heart Disease Clinical Risk Assessment
+### INT428 – AI Essentials | Deployed ML Project
+
+A logistic regression model trained on 302 patient records that estimates the probability of coronary artery disease from 13 clinical measurements. Built end-to-end: from raw CSV to a live public web application.
+
+🔗 **Live App:** [heartriskmodel.streamlit.app](https://heartriskmodel.streamlit.app)
+🔗 **GitHub:** [github.com/pahulmeet-singh/Heart-Risk-AI](https://github.com/pahulmeet-singh/Heart-Risk-AI)
 
 ---
 
-## Quick Start
+## What It Does
 
-```bash
-# Install dependencies
-pip install streamlit pandas numpy scikit-learn joblib matplotlib
+The user enters patient vitals in the sidebar (age, cholesterol, heart rate, ECG readings, etc.) and clicks **Generate Risk Report**. The app outputs:
 
-# Run the app (from this folder)
-streamlit run app.py
-```
-Opens at `http://localhost:8501`
+- A **risk percentage** (0–100%) — probability of heart disease
+- A **risk category** (Low / Moderate / High) with a clinical recommendation
+- A **feature contribution chart** showing which vitals drove the prediction
 
 ---
 
@@ -20,109 +22,104 @@ Opens at `http://localhost:8501`
 
 ```
 heart_project/
-├── app.py                      ← Streamlit web app (FIXED — see bugs below)
-├── EDA.ipynb                   ← Jupyter notebook: EDA + model training (FIXED)
-├── heart.csv                   ← Cleveland Heart Disease dataset (303 rows)
-├── heart_disease_model.pkl     ← Saved Logistic Regression model
-├── heart_scaler.pkl            ← Saved StandardScaler
-├── model_columns.pkl           ← Saved feature name order
-├── Attribute_Description.xlsx  ← Feature documentation
+├── app.py                      ← Streamlit web app (the live interface)
+├── EDA.ipynb                   ← Full EDA + model training pipeline
+├── heart.csv                   ← UCI Cleveland Heart Disease dataset (303 rows)
+├── heart_disease_model.pkl     ← Saved trained Logistic Regression
+├── heart_scaler.pkl            ← Saved StandardScaler (fitted on training data)
+├── model_columns.pkl           ← Saved feature order (alignment contract)
+├── Attribute_Description.xlsx  ← Clinical feature documentation
+├── requirements.txt            ← Python dependencies
 └── README.md                   ← This file
 ```
 
 ---
 
-## Bugs Fixed (Critical — Know These for Viva)
+## Quick Start
 
-### Bug 1: One-Hot Encoding Mismatch
+```bash
+# 1. Install dependencies
+pip install streamlit pandas numpy scikit-learn joblib matplotlib
 
-**What was wrong:**
-```python
-# ❌ OLD (broken)
-df_encoded = pd.get_dummies(df_input, columns=['cp', 'restecg', 'slope', 'ca', 'thal'])
-df_final = df_encoded.reindex(columns=model_columns, fill_value=0)
+# 2. Run the app (from the project folder)
+streamlit run app.py
 ```
-The model was trained on raw integer labels. Adding `pd.get_dummies` created columns
-like `cp_1`, `cp_2` that the model had never seen. The `reindex` silently filled them
-with **0**, making every categorical input completely ignored.
 
-**Fix:**
-```python
-# ✅ FIXED
-df['oldpeak_log'] = np.log1p(df['oldpeak'])
-df.drop('oldpeak', axis=1, inplace=True)
-df = df[model_columns]
-scaled = scaler.transform(df)
-```
+Opens at `http://localhost:8501`
 
 ---
 
-### Bug 2: Inverted Target Class Index
+## Dataset
 
-**What was wrong:**
-```python
-# ❌ OLD (inverted)
-risk_prob = model.predict_proba(scaled_data)[:, 1][0] * 100
-```
-In this Kaggle dataset, `target=0` = disease and `target=1` = healthy.
-So `predict_proba[:, 1]` returns the probability of being **healthy**, not sick.
-This meant every high-risk patient showed a LOW percentage and vice versa.
+**UCI Cleveland Heart Disease** (Kaggle version) — 303 records, 14 columns, 1 duplicate removed.
 
-**Fix:**
-```python
-# ✅ FIXED — P(class=0) = P(disease)
-risk_prob = model.predict_proba(scaled_data)[:, 0][0] * 100
-```
+| Split | Rows |
+|-------|------|
+| Training (80%) | 241 |
+| Test (20%) | 61 |
+| **Total (clean)** | **302** |
+
+> ⚠️ **Important encoding note:** In this Kaggle version, `target = 0` means **heart disease present** and `target = 1` means **healthy** — the reverse of the original UCI convention. The app accounts for this by using `predict_proba[:, 0]` (probability of class 0 = disease).
 
 ---
 
-## How the Model Works (Viva Cheat Sheet)
+## The 13 Input Features
 
-### Algorithm
-**Logistic Regression** — computes a weighted sum of features, passes it through
-a sigmoid function to produce a probability between 0 and 1.
-
-```
-P(disease) = sigmoid(b0 + b1*age + b2*sex + ... + b13*oldpeak_log)
-```
-
-### Full Preprocessing Pipeline
-
-| Order | Step | Why |
-|-------|------|-----|
-| 1 | `drop_duplicates()` | 1 duplicate found in dataset |
-| 2 | Cap `chol` at 99th percentile | Extreme cholesterol outliers skew the model |
-| 3 | `log1p(oldpeak)` → `oldpeak_log` | oldpeak is right-skewed; log reduces this |
-| 4 | Drop original `oldpeak` | Avoid multicollinearity with `oldpeak_log` |
-| 5 | Z-score cap (±3σ) on numeric cols | Clips remaining outliers without removing data |
-| 6 | `StandardScaler` | Logistic Regression is sensitive to feature scale |
-| 7 | Train/test split 80/20 | Evaluate on unseen data |
-
-### Why No One-Hot Encoding?
-Categorical features (`cp`, `slope`, `ca`, `thal`, `restecg`) are kept as integers.
-The model treats them as ordinal. This simplified the pipeline and the `.pkl` files
-reflect this choice — the app must match it exactly.
+| Feature | Type | Range | Clinical Meaning |
+|---------|------|-------|-----------------|
+| `age` | Numerical | 29–77 yrs | Patient age |
+| `sex` | Binary | 0=Female, 1=Male | Biological sex |
+| `cp` | Categorical | 0–3 | Chest pain type (0=Typical Angina, 3=Asymptomatic) |
+| `trestbps` | Numerical | 94–200 mmHg | Resting blood pressure |
+| `chol` | Numerical | 126–564 mg/dl | Serum cholesterol |
+| `fbs` | Binary | 0/1 | Fasting blood sugar > 120 mg/dl |
+| `restecg` | Categorical | 0–2 | Resting ECG result |
+| `thalach` | Numerical | 71–202 bpm | Max heart rate during stress test |
+| `exang` | Binary | 0/1 | Chest pain during exercise |
+| `oldpeak` | Numerical | 0–6.2 | ST depression on ECG |
+| `slope` | Categorical | 0–2 | Slope of peak ST segment |
+| `ca` | Categorical | 0–3 | Major vessels visible via fluoroscopy |
+| `thal` | Categorical | 0–3 | Thalassemia status |
 
 ---
 
-## Feature Reference
+## Preprocessing Pipeline (EDA.ipynb → app.py)
 
-| Feature | Values | Clinical Meaning |
-|---------|--------|-----------------|
-| `age` | 29–77 | Age in years |
-| `sex` | 0=Female, 1=Male | Biological sex |
-| `cp` | 0=Typical Angina → 3=Asymptomatic | 0 most risky in this dataset |
-| `trestbps` | mm Hg | Resting blood pressure |
-| `chol` | mg/dl | Serum cholesterol |
-| `fbs` | 0/1 | Fasting blood sugar > 120 mg/dl |
-| `restecg` | 0–2 | Resting ECG result |
-| `thalach` | bpm | Maximum heart rate achieved |
-| `exang` | 0/1 | Chest pain during exercise |
-| `oldpeak` | 0–6.2 | ST depression (ECG measure) |
-| `slope` | 0–2 | Slope of ST segment |
-| `ca` | 0–3 | Number of major vessels visible |
-| `thal` | 1–3 | 3=Reversible defect (most concerning) |
-| `target` | 0=Disease, 1=Healthy | **0 is disease in this dataset** |
+The same steps are applied in the notebook during training **and** in the app at prediction time. This consistency is mandatory — the scaler was fitted on training data and must receive identically-processed input.
+
+| Step | Code | Reason |
+|------|------|--------|
+| Drop duplicates | `drop_duplicates()` | 1 duplicate row found |
+| Cap cholesterol | 99th percentile = 406.7 mg/dl | Extreme outlier in `chol` |
+| Log-transform oldpeak | `log1p(oldpeak)` | Right-skewed (skewness 1.27 → 0.4) |
+| Drop original oldpeak | `df.drop('oldpeak')` | Replaced by `oldpeak_log` |
+| Z-score cap ±3σ | `np.clip(col, μ-3σ, μ+3σ)` | Removes remaining extremes |
+| Align columns | `df[model_columns]` | Guarantees correct feature order |
+| StandardScaler | `(x − mean) / std` | Equalises feature scale for gradient descent |
+
+---
+
+## Algorithm: Logistic Regression
+
+```
+z = b₀ + b₁×age + b₂×sex + ... + b₁₃×oldpeak_log
+P(disease) = 1 / (1 + e^(−z))    ← sigmoid function
+```
+
+The model learns 13 coefficients + 1 bias term by minimising Binary Cross-Entropy Loss. After training, `predict_proba(X)[:, 0]` returns the probability of heart disease for a new patient.
+
+**Trained coefficients (disease risk direction):**
+
+| Feature | Coefficient | Effect |
+|---------|-------------|--------|
+| `ca` (vessels blocked) | −0.833 | More vessels → higher disease risk |
+| `sex` (male) | −0.829 | Male → higher disease risk |
+| `thal` | −0.618 | Reversible defect → higher risk |
+| `exang` | −0.505 | Exercise pain → higher risk |
+| `cp` | +0.655 | Lower cp value → higher risk |
+| `thalach` | +0.522 | Lower max HR → higher risk |
+
+*(Coefficients are for P(class=1)=P(healthy); negative = associated with disease)*
 
 ---
 
@@ -132,9 +129,32 @@ reflect this choice — the app must match it exactly.
 |--------|-------|
 | Test Accuracy | ~85% |
 | AUC-ROC | ~0.90 |
-| Train size | 241 rows |
-| Test size | 61 rows |
+| Training set | 241 rows |
+| Test set | 61 rows |
 
 ---
 
-*This tool is for educational purposes only. Not for clinical use.*
+## How the Feature Contribution Chart Works
+
+```python
+contributions = -(patient_scaled_values × model.coef_[0])
+```
+
+Multiplying the patient's scaled feature values by the model's coefficients gives each feature's contribution to the prediction. Negating converts from "contribution to healthy" to "contribution to disease risk." Red bars increase risk; green bars reduce it.
+
+---
+
+## Tech Stack
+
+| Tool | Role |
+|------|------|
+| Python 3 | Core language |
+| scikit-learn | LogisticRegression, StandardScaler, metrics |
+| pandas / numpy | Data manipulation |
+| matplotlib / seaborn | Visualisations |
+| joblib | Model serialisation (.pkl files) |
+| Streamlit | Web interface + deployment |
+
+---
+
+*For educational purposes only. Not for clinical use.*
