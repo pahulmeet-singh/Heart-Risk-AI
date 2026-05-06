@@ -487,13 +487,13 @@ def page_welcome():
     <div style="text-align:center;padding:64px 0 8px;">
       <div style="font-size:60px;line-height:1;margin-bottom:18px; filter:drop-shadow(0 0 20px #ef444488);">🫀</div>
       <h1 style="font-size:2.8rem;font-weight:800;letter-spacing:-1px;margin:0; background:linear-gradient(135deg,#00d4ff 0%,#ffffff 65%); -webkit-background-clip:text;-webkit-text-fill-color:transparent; background-clip:text;">CardioAI</h1>
-      <p style="font-size:1rem;color:{C_MUTED};max-width:440px;margin:12px auto 0;line-height:1.75;">A <strong style="color:#94a3b8;">Logistic Regression</strong> model trained on <strong style="color:#94a3b8;">302 patient records</strong> gives you a statistical estimate of heart disease probability in under a minute.</p>
+    <p style="font-size:1rem;color:{C_MUTED};max-width:440px;margin:12px auto 0;line-height:1.75;">A <strong style="color:#94a3b8;">Logistic Regression</strong> model trained on <strong style="color:#94a3b8;">4500 patient records</strong> gives you a statistical estimate of heart disease probability in under a minute.</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    stats = [("~85%","Test Accuracy"),("~0.90","AUC-ROC"),("302","Training Patients"),("13","Clinical Features")]
+    stats = [("~85%","Test Accuracy"),("~0.90","AUC-ROC"),("4500","Training Patients"),("13","Clinical Features")]
     cols  = st.columns(4)
     for col, (val, lbl) in zip(cols, stats):
         with col:
