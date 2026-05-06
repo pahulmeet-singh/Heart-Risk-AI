@@ -39,7 +39,7 @@ heart_project/
 
 ```bash
 # 1. Install dependencies
-pip install streamlit pandas numpy scikit-learn joblib matplotlib
+pip install streamlit pandas numpy scikit-learn joblib matplotlib reportlab
 
 # 2. Run the app (from the project folder)
 streamlit run app.py
